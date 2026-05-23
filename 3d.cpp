@@ -1,4 +1,5 @@
 #include "raylib.h"
+#pragma comment(linker, "/SUBSYSTEM:CONSOLE")
 #include <cmath>
 
 int main() {
@@ -35,29 +36,29 @@ int main() {
     float playerHeight = 0.6f;
     float verticalVelocity = 0.0f;
     bool isGrounded = true;
-    const float gravity = -2.5f;    // Реалистичное ускорение свободного падения
-    const float jumpForce = 1.2f;   // Сила начального импульса прыжка вверх
+    const float gravity = -2.5f;
+    const float jumpForce = 1.2f;
 
-    Texture2D wallTexture = LoadTexture(R"(C:\Users\pasha\source\repos\Project2\Release\3d\x64\Release\52.png)");
+    // Загрузка текстуры. Оставляем относительный путь
+    Texture2D wallTexture = LoadTexture("52.png");
 
+    // Создаем сетку куба и преобразуем в модель. Встроенная развертка меша будет работать стабильно
     Mesh cubeMesh = GenMeshCube(1.0f, 2.0f, 1.0f);
     Model wallModel = LoadModelFromMesh(cubeMesh);
 
+    // Привязываем загруженную текстуру к материалу нашей модели стен
     if (wallTexture.id > 0) {
-        wallModel.materials->maps[MATERIAL_MAP_ALBEDO].texture = wallTexture;
-    }
-    else {
-        wallModel.materials->maps[MATERIAL_MAP_ALBEDO].color = GRAY;
+        wallModel.materials[0].maps[MATERIAL_MAP_ALBEDO].texture = wallTexture;
     }
 
     DisableCursor();
     SetTargetFPS(60);
 
-    const float moveSpeed = 3.0f; // Скорость передвижения (изменено под deltaTime)
+    const float moveSpeed = 3.0f;
     const float mouseSpeed = 0.0025f;
 
     while (!WindowShouldClose()) {
-        float dt = GetFrameTime(); // Получаем время кадра для независимой физики
+        float dt = GetFrameTime();
 
         // --- УПРАВЛЕНИЕ КАМЕРОЙ (МЫШЬ) ---
         Vector2 mouseDelta = GetMouseDelta();
@@ -79,7 +80,7 @@ int main() {
         Vector3 oldPosition = camera.position;
         Vector3 desiredPosition = camera.position;
 
-        // --- ОБРАБОТКА НАЖАТИЙ WASD (С УЧЕТОМ ДЕЛЬТА-ВРЕМЕНИ) ---
+        // --- ОБРАБОТКА НАЖАТИЙ WASD ---
         if (IsKeyDown(KEY_W)) {
             desiredPosition.x += walkForward.x * moveSpeed * dt;
             desiredPosition.z += walkForward.z * moveSpeed * dt;
@@ -97,18 +98,15 @@ int main() {
             desiredPosition.z += right.z * moveSpeed * dt;
         }
 
-        // --- ИСПРАВЛЕННАЯ ЛОГИКА ПРЫЖКА И ГРАВИТАЦИИ ---
+        // --- ЛОГИКА ПРЫЖКА И ГРАВИТАЦИИ ---
         if (isGrounded && IsKeyPressed(KEY_SPACE)) {
             verticalVelocity = jumpForce;
             isGrounded = false;
         }
 
-        // Скорость падения увеличивается каждую секунду на величину гравитации
         verticalVelocity += gravity * dt;
-        // Изменение высоты зависит от текущей скорости и времени кадра
         desiredPosition.y += verticalVelocity * dt;
 
-        // Проверка жесткого приземления на пол
         if (desiredPosition.y <= playerHeight) {
             desiredPosition.y = playerHeight;
             verticalVelocity = 0.0f;
@@ -140,10 +138,8 @@ int main() {
             }
         }
 
-        // Применяем одобренную высоту Y
         camera.position.y = desiredPosition.y;
 
-        // Обновляем точку фокуса камеры
         camera.target.x = camera.position.x + forward.x;
         camera.target.y = camera.position.y + forward.y;
         camera.target.z = camera.position.z + forward.z;
@@ -159,6 +155,7 @@ int main() {
             for (int x = 0; x < mapWidth; x++) {
                 if (map[z][x] == 1) {
                     Vector3 cubePos = { (float)x, 1.0f, (float)z };
+                    // Отрисовываем модель. Текстура наложится сама, если файл лежит в нужной папке
                     DrawModel(wallModel, cubePos, 1.0f, WHITE);
                 }
             }
@@ -174,6 +171,7 @@ int main() {
         EndDrawing();
     }
 
+    // Очистка памяти
     if (wallTexture.id > 0) UnloadTexture(wallTexture);
     UnloadModel(wallModel);
 
